@@ -1,0 +1,292 @@
+﻿@page "/printsummon/{id}"
+@using Newtonsoft.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+@layout LoginLayout
+@inject IJSRuntime IJS
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div class="header">
+        <div><img src="logo.png" class="logo" /></div>
+        <div>Republic of the Philippines</div>
+        <div>Province of South Cotabato</div>
+        <div>Municipality of Polomolok</div>
+        <div class="glam">BARANGAY GLAMANG</div>
+        <div>Telephone No. <u><b>552_2875</b></u></div>
+        <br />
+
+        <div class="glam">OFFICE OF THE PUNONG BARANGAY</div>
+    </div>
+    <hr class="hr" />
+
+    <div class="container">
+        <div class="small-column">
+            <div class="officials">
+                <div class="brgy">BARANGAY OFFICIALS</div>
+                <div class="year">2018-2023</div> <br />
+                <div class="pb">HON. MARIVIC P. TUBO</div>
+                <div class="pb2">Punong Barangay</div><br />
+                <div class="name">HON.JAME M. AMPO</div>
+                <div class="title">Committee on Social Services/Livelihood</div><br />
+                <div class="name">HON.FERDINAND S. MUÑASQUE</div>
+                <div class="title">Committee on Agriculture/Rules & Previliges</div><br />
+                <div class="name">HON.GODOFREDO E. DIOT</div>
+                <div class="title">Committee on Peace & Order/</div>
+                <div class="title">Human Rights Infrastructure</div><br />
+                <div class="name">HON.REY C. FIGURA</div>
+                <div class="title">  Committee on Solid Waste Management/</div>
+                <div class="title">Environment Protection</div><br />
+                <div class="name">HON.SHIRLEY P. CABONEGRO</div>
+                <div class="title">Committee on Appropriation/Health</div><br />
+                <div class="name">HON.RONALD NOGALADA</div>
+                <div class="title">Committee on Education & Culture/</div>
+                <div class="title">Women & Family</div><br />
+                <div class="name">HON.ALIPIO CLAVER</div>
+                <div class="title">Committee on Transportation/Cooperatives</div><br />
+                <div class="name">HON.CILVER BOY E. BUSGANO</div>
+                <div class="title">SK Chairperson</div>
+                <div class="title">Committee on Sports /Culture & Arts</div><br />
+                <div class="name">MYLEN E. DANIAL</div>
+                <div class="title">Brgy. Secretray</div><br />
+                <div class="name">MARIA D. AMPO</div>
+                <div class="title">Brgy. Treasurer</div><br />
+                <div class="title2">BARANGAY STAFF</div><br />
+                <div class="name">MERCEDITA T. PRÑAFLOR</div>
+                <div class="title">Clerk</div><br />
+                <div class="name">KIMBERLY S.  MACADINI</div>
+                <div class="title">Clerk</div><br />
+                <div class="name">RONNIE CALUNSAG</div>
+                <div class="title">Chief Tanod</div><br />
+                <div class="name">MICHAEL JOEL OCHAVO</div>
+                <div class="title">Sanitary Inspector</div><br />
+                <div class="name">DORILYN D. CARVAJAL</div>
+                <div class="title">BHW Coordinator</div><br />
+                <div class="name">SALVACION S. EPE</div>
+                <div class="title">Brgy. Midwife</div>
+            </div>
+        </div>
+
+        <div class="large-column" style="font-size:17px;">
+            <div>@_blotter.rdate.ToString("MMMM d, yyyy")</div><br /><br />
+            <div>To: <p1 style="text-decoration:underline; font-weight:bold">@_blotter.respondent </p1></div> 
+            <br /><br />
+          <div>Greetings!!!</div>  <br /><br />
+
+            <div style="text-align: center; display: flex; justify-content: center; text-indent: 15px;">
+                <div style="text-align: justify;">
+                    <div>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        You are hereby invited to appear </div>
+                    <div>before me at the Office of the Punong</div>
+                    <div>Barangay on @_blotter.rdate.ToString("MMMM d, yyyy (dddd)") at</div>
+                    <div> 8:00 o'clock in the morning as per request of </div>
+                    <div style="text-decoration:underline; font-weight:bold">
+                        @_blotter.complainant</div>
+                </div>
+            </div>
+          
+           <br /><br /><br />
+           <div>Your Presence is highly appreciated</div>
+            <br />
+            <div>Very truly yours,</div>
+            <br /><br /><br />
+
+            <div style="font-weight:bold; text-decoration:underline">MARIVIC P. TUBO</div>
+            <div>Punong Barangay</div>
+        
+        </div>
+    </div>
+</body>
+</html>
+
+<style>
+
+    .ft {
+        font-size: 10px;
+        font-style: italic;
+        font-weight: bold;
+        text-align: center;
+    }
+
+    .up2 {
+        margin-top: -80px;
+        margin-right: -250px;
+    }
+
+    .container1 {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: stretch;
+    }
+
+    .column1 {
+        flex: 1;
+        margin: 10px;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    /* Column Style*/
+    .container {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .small-column {
+        width: 40%;
+    }
+
+    .large-column {
+        width: 60%;
+    }
+
+
+    /* Officials*/
+    body {
+        background-image: url('bg.jpg');
+        background-repeat: no-repeat;
+        background-size: cover;
+    }
+
+    .header {
+        text-align: center;
+    }
+
+    .glam {
+        font-weight: bold;
+    }
+
+    .logo {
+        margin-bottom: -100px;
+        margin-left: -350px;
+        height: 100px;
+        width: auto;
+    }
+
+    .brgy {
+        font-weight: bold;
+        text-decoration: underline;
+    }
+
+    .year {
+        font-size: 10px;
+    }
+
+    .pb {
+        font-weight: bold;
+        text-decoration: underline;
+        font-size: 13px;
+    }
+
+    .pb2 {
+        font-size: 11px;
+    }
+
+    .name {
+        font-weight: bold;
+        text-decoration: underline;
+        font-size: 12px;
+        text-align: center;
+    }
+
+    .title {
+        font-size: 10px;
+        text-align: center;
+    }
+
+    .title2 {
+        font-weight: bold;
+    }
+
+    .officials {
+        /*  text-indent: 15px;*/
+        line-height: 1.1;
+        text-align: center;
+    }
+
+    .content {
+        text-align: justify-all;
+        text-indent: 60px;
+        font-size: 18px;
+    }
+
+    .req {
+        font-size: 18px;
+    }
+
+    .request {
+        font-weight: bold;
+        text-decoration: underline;
+        text-transform: uppercase;
+        font-size: 18px;
+    }
+
+    .img {
+        height: 120px;
+        width: 120px;
+    }
+
+    .xname {
+        text-decoration: underline;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    .clr {
+        font-size: 25px;
+        font-weight: bold;
+        font-family: broadway;
+    }
+
+    .to {
+        font-size: 18px;
+    }
+
+    .done {
+        font-size: 15px;
+    }
+
+</style>
+@code
+{
+    [Parameter] public string id { get; set; }
+    [Parameter] public blotter _blotter { get; set; } = new blotter();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Task.Delay(500);
+            await IJS.InvokeVoidAsync("printPage");
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        string apiUrl = $"{Nav.BaseUri}api/Blotter/Blotter";
+        var response = await Http.GetAsync(apiUrl);
+        response.EnsureSuccessStatusCode();
+        string responseBodyJson = await response.Content.ReadAsStringAsync();
+        var clr = JsonConvert.DeserializeObject<List<blotter>>(responseBodyJson);
+        _blotter = clr.Where(x => x.blotter_id == id).FirstOrDefault();
+    }
+
+
+    public async Task Print()
+    {
+        await IJS.InvokeAsync<object>("print");
+
+    }
+
+}

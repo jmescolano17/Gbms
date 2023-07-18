@@ -1,0 +1,90 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="Pages\Error.cshtml" />
+    <None Include="Pages\FetchData.razor" />
+    <None Include="Pages\Index.razor" />
+    <None Include="Pages\_Host.cshtml" />
+    <None Include="Pages\_Layout.cshtml" />
+    <None Include="Shared\MainLayout.razor" />
+    <None Include="Shared\NavMenu.razor" />
+    <None Include="Shared\SurveyPrompt.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.Reporting" Version="2.1.0" />
+    <PackageReference Include="Blazored.LocalStorage" Version="4.3.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.16" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="7.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="6.0.16" />
+    <PackageReference Include="MudBlazor" Version="6.2.2" />
+    <PackageReference Include="MudBlazor.ThemeManager" Version="1.0.7" />
+    <PackageReference Include="MySql.Data" Version="8.0.32.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.17" />
+    <PackageReference Include="System.CodeDom" Version="6.0.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.29.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Reports\BusinessDataSet.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>BusinessDataSet.xsd</DependentUpon>
+    </Compile>
+    <Compile Update="Reports\ClearanceDataSet.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ClearanceDataSet.xsd</DependentUpon>
+    </Compile>
+    <Compile Update="Reports\IndigencyDataSet.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>IndigencyDataSet.xsd</DependentUpon>
+    </Compile>
+    <Compile Update="Reports\ResidentDataSet.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ResidentDataSet.xsd</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Reports\BlotterDataSet.xsd">
+      <SubType>Designer</SubType>
+      <LastGenOutput>BlotterDataSet.Designer.cs</LastGenOutput>
+      <Generator>MSDataSetGenerator</Generator>
+    </None>
+    <None Update="Reports\BusinessDataSet.xsd">
+      <SubType>Designer</SubType>
+      <LastGenOutput>BusinessDataSet.Designer.cs</LastGenOutput>
+      <Generator>MSDataSetGenerator</Generator>
+    </None>
+    <None Update="Reports\ClearanceDataSet.xsd">
+      <SubType>Designer</SubType>
+      <LastGenOutput>ClearanceDataSet.Designer.cs</LastGenOutput>
+      <Generator>MSDataSetGenerator</Generator>
+    </None>
+    <None Update="Reports\HouseholdDataSet.xsd">
+      <SubType>Designer</SubType>
+      <LastGenOutput>HouseholdDataSet.Designer.cs</LastGenOutput>
+      <Generator>MSDataSetGenerator</Generator>
+    </None>
+    <None Update="Reports\IndigencyDataSet.xsd">
+      <SubType>Designer</SubType>
+      <LastGenOutput>IndigencyDataSet.Designer.cs</LastGenOutput>
+      <Generator>MSDataSetGenerator</Generator>
+    </None>
+    <None Update="Reports\ResidentDataSet.xsd">
+      <Generator>MSDataSetGenerator</Generator>
+      <LastGenOutput>ResidentDataSet.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+</Project>

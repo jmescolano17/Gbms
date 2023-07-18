@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="IndigencyDataSet" targetNamespace="http://tempuri.org/IndigencyDataSet.xsd" xmlns:mstns="http://tempuri.org/IndigencyDataSet.xsd" xmlns="http://tempuri.org/IndigencyDataSet.xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" xmlns:msprop="urn:schemas-microsoft-com:xml-msprop" attributeFormDefault="qualified" elementFormDefault="qualified">
+  <xs:annotation>
+    <xs:appinfo source="urn:schemas-microsoft-com:xml-msdatasource">
+      <DataSource DefaultConnectionIndex="0" FunctionsComponentName="QueriesTableAdapter" Modifier="AutoLayout, AnsiClass, Class, Public" SchemaSerializationMode="IncludeSchema" xmlns="urn:schemas-microsoft-com:xml-msdatasource">
+        <Connections />
+        <Tables />
+        <Sources />
+      </DataSource>
+    </xs:appinfo>
+  </xs:annotation>
+  <xs:element name="IndigencyDataSet" msdata:IsDataSet="true" msdata:UseCurrentLocale="true" msprop:Generator_UserDSName="IndigencyDataSet" msprop:EnableTableAdapterManager="true" msprop:Generator_DataSetName="IndigencyDataSet">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="indigency" msprop:Generator_RowClassName="indigencyRow" msprop:Generator_RowEvHandlerName="indigencyRowChangeEventHandler" msprop:Generator_RowDeletedName="indigencyRowDeleted" msprop:Generator_RowDeletingName="indigencyRowDeleting" msprop:Generator_RowEvArgName="indigencyRowChangeEvent" msprop:Generator_TablePropName="indigency" msprop:Generator_RowChangedName="indigencyRowChanged" msprop:Generator_UserTableName="indigency" msprop:Generator_RowChangingName="indigencyRowChanging" msprop:Generator_TableClassName="indigencyDataTable" msprop:Generator_TableVarName="tableindigency">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="indi_id" msprop:Generator_UserColumnName="indi_id" msprop:Generator_ColumnPropNameInTable="indi_idColumn" msprop:Generator_ColumnPropNameInRow="indi_id" msprop:Generator_ColumnVarNameInTable="columnindi_id" type="xs:string" minOccurs="0" />
+              <xs:element name="fullname" msprop:Generator_UserColumnName="fullname" msprop:Generator_ColumnPropNameInTable="fullnameColumn" msprop:Generator_ColumnPropNameInRow="fullname" msprop:Generator_ColumnVarNameInTable="columnfullname" type="xs:string" minOccurs="0" />
+              <xs:element name="age" msprop:Generator_UserColumnName="age" msprop:Generator_ColumnPropNameInTable="ageColumn" msprop:Generator_ColumnPropNameInRow="age" msprop:Generator_ColumnVarNameInTable="columnage" type="xs:string" minOccurs="0" />
+              <xs:element name="citizenship" msprop:Generator_UserColumnName="citizenship" msprop:Generator_ColumnPropNameInTable="citizenshipColumn" msprop:Generator_ColumnPropNameInRow="citizenship" msprop:Generator_ColumnVarNameInTable="columncitizenship" type="xs:string" minOccurs="0" />
+              <xs:element name="status" msprop:Generator_UserColumnName="status" msprop:Generator_ColumnPropNameInTable="statusColumn" msprop:Generator_ColumnPropNameInRow="status" msprop:Generator_ColumnVarNameInTable="columnstatus" type="xs:string" minOccurs="0" />
+              <xs:element name="purok" msprop:Generator_UserColumnName="purok" msprop:Generator_ColumnPropNameInTable="purokColumn" msprop:Generator_ColumnPropNameInRow="purok" msprop:Generator_ColumnVarNameInTable="columnpurok" type="xs:string" minOccurs="0" />
+              <xs:element name="request" msprop:Generator_UserColumnName="request" msprop:Generator_ColumnPropNameInTable="requestColumn" msprop:Generator_ColumnPropNameInRow="request" msprop:Generator_ColumnVarNameInTable="columnrequest" type="xs:string" minOccurs="0" />
+              <xs:element name="date" msprop:Generator_UserColumnName="date" msprop:Generator_ColumnPropNameInTable="dateColumn" msprop:Generator_ColumnPropNameInRow="date" msprop:Generator_ColumnVarNameInTable="columndate" type="xs:string" minOccurs="0" />
+              <xs:element name="fee" msprop:Generator_UserColumnName="fee" msprop:Generator_ColumnPropNameInTable="feeColumn" msprop:Generator_ColumnPropNameInRow="fee" msprop:Generator_ColumnVarNameInTable="columnfee" type="xs:string" minOccurs="0" />
+              <xs:element name="receipt" msprop:Generator_UserColumnName="receipt" msprop:Generator_ColumnPropNameInTable="receiptColumn" msprop:Generator_ColumnPropNameInRow="receipt" msprop:Generator_ColumnVarNameInTable="columnreceipt" type="xs:string" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

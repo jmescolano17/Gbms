@@ -1,0 +1,214 @@
+﻿@page "/officials"
+@using System.Net.Http.Headers
+@inject ILocalStorageService localStorage
+@using Microsoft.AspNetCore.SignalR.Client
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject NavigationManager Nav
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Officials & Staff List</PageTitle>
+
+<br />
+<MudContainer Class="d-flex justify-start mb-2">
+    <MudButton Disabled="@_processing" OnClick="Refresh" Variant="Variant.Outlined" Color="Color.Primary">
+        @if (_processing)
+        {
+            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+            <MudText Class="ms-2">Loading</MudText>
+        }
+        else
+        {
+            <MudText>Refresh</MudText>
+        }
+    </MudButton> &nbsp; &nbsp;
+    <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Tertiary" @onclick="(e => AddOfficials())">Add New</MudButton>
+    <MudSpacer /> <MudSpacer /> <MudSpacer /> <MudSpacer /> <MudSpacer /> <MudSpacer /> <MudSpacer />
+    <MudTextField @bind-Value="txtsearch" Clearable
+    TextChanged="Search"
+                  Label="Search"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  Class="xsearch">
+    </MudTextField> 
+</MudContainer>
+
+<MudTable Breakpoint="Breakpoint.Sm" Class="ma-5" Dense="true" Hover="true" Items="@xofficialList" FixedHeader="@fixed_header"
+          FixedFooter="@fixed_footer" Height="@(fixed_header || fixed_footer ?"500px": "")">
+    <HeaderContent>
+         <MudTh Style="height:50px;">Photo</MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<officials, object>(c => c.fullname)">Name</MudTableSortLabel></MudTh>
+        <MudTh>Position</MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<officials, object>(c => c.purok)">Purok</MudTableSortLabel></MudTh>
+        <MudTh>Term Start</MudTh>
+        <MudTh>Term End</MudTh>
+        <MudTh></MudTh>
+     
+    </HeaderContent>
+
+    <RowTemplate>
+       
+         <MudTd id="rows" DataLabel="description">
+        <img src="data:image/bmp;base64, @(Convert.ToBase64String(@context.photo))" class="img" />
+        </MudTd>
+        <MudTd DataLabel="Full Name">@context.fullname</MudTd>
+        <MudTd DataLabel="Position">@context.position</MudTd>
+        <MudTd DataLabel="Purok">@context.purok</MudTd>
+        <MudTd DataLabel="Term Start">@context.term_start.ToString("d")</MudTd>
+        <MudTd DataLabel="Term End">@context.term_end.ToString("d")</MudTd>
+      
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="edit" Class="btn2" Size="Size.Small"
+                           Variant="Variant.Outlined" Color="Color.Primary" @onclick="(e => EditOfficials(context.off_id))"></MudIconButton>
+        </MudTd> 
+    </RowTemplate>
+
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[]{50,200,500,1000,2000}" />
+    </PagerContent>
+</MudTable>
+
+<style>
+    .btn2 {
+        padding: 0em;
+        margin-left: -50px;
+    }
+
+    .img {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+    }
+
+    .title {
+        font-family: Cambria, Cochin, Georgia, Times, Times New Roman, serif;
+        font-size: 30px;
+    }
+</style>
+
+@code {
+    DateTime? date = DateTime.Today;
+    [Parameter] public officials server { get; set; } = new officials();
+    officials[]? xofficialList;
+    public string? txtsearch { get; set; }
+    bool fixed_header = true;
+    bool fixed_footer = false;
+    bool _processing = false;
+
+    protected HubConnection hubConnection;
+    protected async override Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Nav.ToAbsoluteUri("/hub"))
+            .Build();
+
+        hubConnection.On("client", async () =>
+        {
+            await Task.Delay(2000);
+            await GetOfficials();
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+
+    async Task Refresh()
+    {
+        if (hubConnection.State == HubConnectionState.Disconnected)
+        {
+            await hubConnection.StartAsync();
+        }
+        _processing = true;
+        await Task.Delay(2000);
+        _processing = false;
+        await GetOfficials();
+    }
+
+    public async Task Search()
+    {
+        if (string.IsNullOrWhiteSpace(txtsearch))
+        {
+            StateHasChanged();
+            return;
+        }
+        await hubConnection.StopAsync();
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Officials/SearchOfficials?search={txtsearch}");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                xofficialList = JsonConvert.DeserializeObject<officials[]>(contentrespose);
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add($"Warning: {response.StatusCode}", Severity.Warning);
+                StateHasChanged();
+            }
+        }
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+        await GetOfficials();
+        await InvokeAsync(() => StateHasChanged());
+    }
+    public async Task GetOfficials()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+        }
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Officials/Officials");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                xofficialList = JsonConvert.DeserializeObject<officials[]>(contentrespose);
+                StateHasChanged();
+            }
+            else
+            {
+                await hubConnection.StopAsync();
+                Nav.NavigateTo("/auth403");
+            }
+        }
+    }
+
+
+
+    private async Task AddOfficials()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("server", new officials());
+        var dialog = await Dialog.Show<AddOfficials>("Add Officials", parameters).Result;
+    }
+
+
+    public async Task EditOfficials(string id)
+    {
+        var parameters = new DialogParameters();
+        var updateOfficials = xofficialList.FirstOrDefault(_ => _.off_id == id);
+        parameters.Add("server", updateOfficials);
+        var dialog = await Dialog.Show<UpdateOfficials>("Update Officials", parameters).Result;
+
+    }
+    private async Task<int> DeleteOfficials(int id)
+    {
+        return id;
+
+    }
+}

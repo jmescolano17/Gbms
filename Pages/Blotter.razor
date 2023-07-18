@@ -1,0 +1,333 @@
+﻿@page "/blotter"
+@using System.Net.Http.Headers
+@inject ILocalStorageService localStorage
+@using Gbms.Shared;
+@using Microsoft.AspNetCore.SignalR.Client;
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject IJSRuntime IJS
+@inject NavigationManager Nav
+
+<PageTitle>Blotter</PageTitle>
+<br />
+<br />
+
+<MudContainer Class="d-flex justify-start mb-2">
+    <MudButton Disabled="@_processing" OnClick="Refresh" Variant="Variant.Outlined" Color="Color.Primary">
+        @if (_processing)
+        {
+            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+            <MudText Class="ms-2">Loading</MudText>
+        }
+        else
+        {
+            <MudText>Refresh</MudText>
+        }
+    </MudButton> &nbsp; &nbsp;
+    <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Tertiary" @onclick="(e => Add())">Add New</MudButton>
+    <MudSpacer /> <MudSpacer /> <MudSpacer />
+    <MudSpacer /> <MudSpacer /> <MudSpacer />
+
+    <MudTextField @bind-Value="txtsearch"
+                    Clearable
+                  TextChanged="@Search"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Label="Search"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  Class="xsearch">
+    </MudTextField>
+    </MudContainer>
+
+    <MudTable Breakpoint="Breakpoint.Sm" Class="ma-5" Dense="true"
+          Hover="true" Items="@blotterlist"
+          FixedHeader="@fixed_header" FixedFooter="@fixed_footer"
+          Height="@(fixed_header || fixed_footer ?"450px": "")">
+
+    <ToolBarContent>
+        <MudSpacer /> <MudSpacer /> <MudSpacer />
+        <MudToolBar>
+            <MudDateRangePicker Label="Select Date From - To" Margin="Margin.Dense" DateRange="_dateRange" DateRangeChanged="@(value =>
+            { _dateRange = value; SearchDate(); })" DateFormat="yyyy-MM-dd" />
+        </MudToolBar>
+        <MudFab StartIcon="@Icons.Material.Filled.ImportExport" @onclick="ExcelExport"
+                Label="Export to Excel" Color="Color.Info" Size="Size.Small" />
+    </ToolBarContent>
+
+    <HeaderContent>
+        <MudTh><MudTableSortLabel SortBy="new Func<blotter, object>(c => c.case_no)">Case #</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<blotter, object>(c => c.complainant)">Complainant</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<blotter, object>(c => c.respondent)">Respondent</MudTableSortLabel></MudTh>
+        <MudTh>Title</MudTh>
+        <MudTh>
+            <MudTableSortLabel SortBy="new Func<blotter, object>(c => c.rdate)" InitialDirection="SortDirection.Descending">
+                Reported Date
+            </MudTableSortLabel>
+        </MudTh>
+        <MudTh>Schedule Date</MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<blotter, object>(c => c.status)">Status</MudTableSortLabel></MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+
+    <RowTemplate>
+        <MudTd DataLabel="Case #">@context.case_no</MudTd>
+        <MudTd DataLabel="Complainant">@context.complainant</MudTd>
+        <MudTd DataLabel="Respondent">@context.respondent</MudTd>
+        <MudTd DataLabel="Title">@context.title</MudTd>
+        <MudTd DataLabel="Reported Date">@context.rdate.ToString("d")</MudTd>
+        <MudTd DataLabel="Schedule Date">@context.sched.ToString("d")</MudTd>
+        <MudTd DataLabel="Status">
+            @if (context.status == "Resolved")
+            {
+                <MudChip Color="Color.Success" Size="Size.Small">@context.status</MudChip>
+            }
+            else
+            {
+                <MudChip Color="Color.Primary" Size="Size.Small">@context.status</MudChip>
+            }
+        </MudTd>
+
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="edit" Class="btn2" Size="Size.Small"
+                           Variant="Variant.Outlined" Color="Color.Primary" @onclick="(e => Edit(context.blotter_id))"></MudIconButton>
+        </MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Print" aria-label="print" Class="btn2" Size="Size.Small"
+                           Variant="Variant.Outlined" Color="Color.Tertiary" @onclick="(e => Print(context.blotter_id))"></MudIconButton>
+        </MudTd>
+    </RowTemplate>
+
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[]{50,200,500,1000,2000}" />
+
+    </PagerContent>
+    </MudTable>
+
+@code {
+
+    officials[]? xofficialList;
+    public async Task GetOfficials()
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Officials/Officials");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                xofficialList = JsonConvert.DeserializeObject<officials[]>(contentrespose);
+                StateHasChanged();
+            }
+            else
+            {
+                Nav.NavigateTo("/auth403");
+            }
+        }
+    }
+
+    //MudBlazor Date Range Picker
+    private MudDateRangePicker? _picker;
+    private MudBlazor.DateRange _dateRange = new MudBlazor.DateRange();
+
+    blotter[]? blotterlist;
+    [Parameter] public blotter _blotter { get; set; } = new blotter();
+    private string? txtsearch { get; set; }
+    DateTime? date = DateTime.Today;
+
+    bool fixed_header = true;
+    bool fixed_footer = false;
+    bool _processing = false;
+
+    protected HubConnection hubConnection;
+    protected async override Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Nav.ToAbsoluteUri("/hub"))
+            .Build();
+
+        hubConnection.On("client", async () =>
+        {
+            await Task.Delay(2000);
+            await GetBlotter();
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+
+    async Task Refresh()
+    {
+        if (hubConnection.State == HubConnectionState.Disconnected)
+        {
+            await hubConnection.StartAsync();
+        }
+        _processing = true;
+        await Task.Delay(2000);
+        _processing = false;
+        await GetBlotter();
+    }
+
+    private async Task ExcelExport()
+    {
+        if (_dateRange.Start == null || _dateRange.End == null)
+        {
+
+            Snackbar.Add($"Warning: Select Date First!", Severity.Warning);
+        }
+        else
+        {
+            Nav.NavigateTo($"{Nav.BaseUri}api/Blotter/BlotterReport?start={_dateRange.Start.Value:yyyy-MM-dd}&end={_dateRange.End.Value:yyyy-MM-dd}", true);
+        }
+    }
+
+    private async Task SearchDate()
+    {
+        await hubConnection.StopAsync();
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Blotter/SearchDateBlotter?start={_dateRange.Start.Value:yyyy-MM-dd}&end={_dateRange.End.Value:yyyy-MM-dd}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                blotterlist = JsonConvert.DeserializeObject<blotter[]>(contentrespose);
+            }
+            else
+            {
+                Snackbar.Add($"Warning: {response.StatusCode}", Severity.Warning);
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async Task Search()
+    {
+        if (string.IsNullOrWhiteSpace(txtsearch))
+        {
+            StateHasChanged();
+            return;
+        }
+        await hubConnection.StopAsync();
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Blotter/SearchBlotter?search={txtsearch}");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                blotterlist = JsonConvert.DeserializeObject<blotter[]>(contentrespose);
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add($"Warning: {response.StatusCode}", Severity.Warning);
+                StateHasChanged();
+            }
+        }
+    }
+    private async Task Add()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("_blotter", new blotter());
+        var dialog = await Dialog.Show<AddBlotter>("Add Blotter", parameters).Result;
+    }
+
+    [Parameter] public residents _complainant { get; set; } = new residents();
+    [Parameter] public residents _respondent { get; set; } = new residents();
+
+    private async Task Edit(string id)
+    {
+        blotter[]? xblotter;
+        var xxblotter = from s in blotterlist where s.blotter_id == id select s;
+        xblotter = xxblotter.ToArray();
+        _complainant.res_id = xblotter[0].res_id_c;
+        _respondent.res_id = xblotter[0].res_id_r;
+        _complainant.fullname = xblotter[0].complainant;
+        _respondent.fullname = xblotter[0].respondent;
+        var parameters = new DialogParameters();
+        var updateClearance = blotterlist.FirstOrDefault(_ => _.blotter_id == id);
+        parameters.Add("_blotter", updateClearance);
+        parameters.Add("_complainant", _complainant);
+        parameters.Add("_respondent", _respondent);
+        var dialog = Dialog.Show<UpdateBlotter>("Update Business", parameters);
+        var result = await dialog.Result;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (firstRender)
+        {
+            await GetOfficials();
+            await GetBlotter();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+
+    private async Task GetBlotter()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+        }
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Blotter/Blotter");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                blotterlist = JsonConvert.DeserializeObject<blotter[]>(contentrespose);
+                await InvokeAsync(StateHasChanged);
+            } 
+            else
+            {
+                await hubConnection.StopAsync();
+                Nav.NavigateTo("/auth403");
+            }
+        }
+    }
+
+
+    [Inject]
+    protected IJSRuntime JSRuntime { get; set; }
+
+    private async Task Print(string id)
+    {
+        string path = $"printsummon/{id}";
+        await OpenInNewTab(path);
+    }
+
+    private async ValueTask OpenInNewTab(string url)
+    {
+        await JSRuntime.InvokeVoidAsync("open", url, "_blank");
+    }
+}
+
+
+<style>
+    .title {
+        font-family: Cambria, Cochin, Georgia, Times, Times New Roman, serif;
+        font-size: 30px;
+    }
+
+    .btn2 {
+        padding: 0em;
+        margin-left: -40px;
+    }
+
+    .img {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+    }
+</style>

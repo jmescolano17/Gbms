@@ -1,0 +1,402 @@
+﻿@page "/indigency"
+@using System.Net.Http.Headers
+@inject ILocalStorageService localStorage
+@using Microsoft.AspNetCore.SignalR.Client;
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject IJSRuntime IJS
+@inject NavigationManager Nav
+
+
+<PageTitle>Brgy. Indigency</PageTitle>
+<br />
+<br />
+<MudContainer Class="d-flex justify-start mb-2">
+    <MudButton Disabled="@_processing" OnClick="Refresh" Variant="Variant.Outlined" Color="Color.Primary">
+        @if (_processing)
+        {
+            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+            <MudText Class="ms-2">Loading</MudText>
+        }
+        else
+        {
+            <MudText>Refresh</MudText>
+        }
+    </MudButton> &nbsp; &nbsp;
+    <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Tertiary" @onclick="(e => Add())">Add New</MudButton>
+    <MudSpacer /> <MudSpacer /> <MudSpacer /> <MudSpacer /> <MudSpacer /> <MudSpacer /> <MudSpacer />
+    <MudTextField @bind-Value="txtsearch"
+                  TextChanged="@Search"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Label="Search"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  Class="xsearch">
+    </MudTextField>
+</MudContainer>
+
+<style>
+    .title {
+        font-family: Cambria, Cochin, Georgia, Times, Times New Roman, serif;
+        font-size: 30px;
+    }
+</style>
+
+<MudTable Breakpoint="Breakpoint.Sm" Class="ma-5" Dense="true"
+          Hover="true" Items="@indigencylist"
+          FixedHeader="@fixed_header" FixedFooter="@fixed_footer"
+          Height="@(fixed_header || fixed_footer ?"500px": "")">
+    <ToolBarContent>
+        <MudSpacer />
+        <MudSpacer />
+        <MudSpacer />
+        <MudToolBar>
+            <MudDateRangePicker Label="Select Date From - To" Margin="Margin.Dense" DateRange="_dateRange" DateRangeChanged="@(value =>
+            { _dateRange = value; SearchDate(); })" DateFormat="yyyy-MM-dd" />
+        </MudToolBar>
+        <MudFab StartIcon="@Icons.Material.Filled.ImportExport" @onclick="ExcelExport"
+                Label="Export to Excel" Color="Color.Info" Size="Size.Small" />
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>
+            <MudTableSortLabel SortBy="new Func<indigency, object>(c => c.date)" InitialDirection="SortDirection.Descending">
+                Date & Time
+            </MudTableSortLabel>
+        </MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<indigency, object>(c => c.fullname)">Name</MudTableSortLabel></MudTh>
+        <MudTh>Request</MudTh>
+        <MudTh>Fee</MudTh>
+        <MudTh>Receipt #</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh></MudTh>
+        <MudTh></MudTh>
+    
+
+    </HeaderContent>
+
+    <RowTemplate>
+      
+        <MudTd DataLabel="Date & Time">@context.date</MudTd>
+        <MudTd DataLabel="Full Name">@context.fullname</MudTd>
+        <MudTd DataLabel="Request">@context.request</MudTd>
+        <MudTd DataLabel="Fee">@context.fee</MudTd>
+        <MudTd DataLabel="Receipt #">@context.receipt</MudTd>
+        <MudTd DataLabel="Status">
+            @if (context.stat == "Released")
+            {
+                <MudChip Color="Color.Success" Size="Size.Small">@context.stat</MudChip>
+            }
+            else
+            {
+                <MudChip Color="Color.Primary" Size="Size.Small">@context.stat</MudChip>
+            }
+        </MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="edit" Class="btn2" Size="Size.Small"
+                           Variant="Variant.Outlined" Color="Color.Primary" @onclick="(e => EditClearance(context.indi_id))"></MudIconButton>
+        </MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Print" aria-label="print" Class="btn2" Size="Size.Small"
+                           Variant="Variant.Outlined" Color="Color.Tertiary" @onclick="(e => Print(context.indi_id))"></MudIconButton>
+        </MudTd>
+    </RowTemplate>
+
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[]{50,200,500,1000,2000}" />
+
+    </PagerContent>
+</MudTable>
+
+<style>
+    .btn2 {
+        padding: 0em;
+        margin-left: -40px;
+    }
+
+    .img {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+    }
+</style>
+
+
+@code {
+
+    //MudBlazor Date Range Picker
+    private MudDateRangePicker? _picker;
+    private MudBlazor.DateRange _dateRange = new MudBlazor.DateRange();
+
+    public string? txtsearch { get; set; }
+    DateTime? date = DateTime.Today;
+    [Parameter] public indigency server { get; set; } = new indigency();
+    indigency xindigency = new();
+    indigency[]? indigencylist;
+
+    bool fixed_header = true;
+    bool fixed_footer = false;
+    bool _processing = false;
+
+    protected HubConnection hubConnection;
+    protected async override Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Nav.ToAbsoluteUri("/hub"))
+            .Build();
+
+        hubConnection.On("client", async () =>
+        {
+            await Task.Delay(2000);
+            await GetIndigency();
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+
+     officials[]? xofficialList;
+    public async Task GetOfficials()
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Officials/Officials");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                xofficialList = JsonConvert.DeserializeObject<officials[]>(contentrespose);
+                StateHasChanged();
+            }
+            else
+            {
+                Nav.NavigateTo("/indigencyuser");
+            }
+        }
+    }
+
+    async Task Refresh()
+    {
+        if (hubConnection.State == HubConnectionState.Disconnected)
+        {
+            await hubConnection.StartAsync();
+        }
+        _processing = true;
+        await Task.Delay(2000);
+        _processing = false;
+        await GetIndigency();
+    }
+
+
+    private async Task Search()
+    {
+        if (string.IsNullOrWhiteSpace(txtsearch))
+        {
+            StateHasChanged();
+            return;
+        }
+        await hubConnection.StopAsync();
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Indigency/SearchIndigency?search={txtsearch}");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                indigencylist = JsonConvert.DeserializeObject<indigency[]>(contentrespose);
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add($"Warning: {response.StatusCode}", Severity.Warning);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task ExcelExport()
+    {
+        if (_dateRange.Start == null || _dateRange.End == null)
+        {
+            Snackbar.Add($"Warning: Select Date First!", Severity.Warning);
+        }
+        else
+        {
+            Nav.NavigateTo($"{Nav.BaseUri}api/Indigency/IndigencyReport?start={_dateRange.Start.Value:yyyy-MM-dd}&end={_dateRange.End.Value:yyyy-MM-dd}", true);
+        }
+    }
+
+    private async Task SearchDate()
+    {
+        await hubConnection.StopAsync();
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Indigency/SearchDateIndigency?start={_dateRange.Start.Value:yyyy-MM-dd}&end={_dateRange.End.Value:yyyy-MM-dd}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                indigencylist = JsonConvert.DeserializeObject<indigency[]>(contentrespose);
+            }
+            else
+            {
+                Snackbar.Add($"Warning: {response.StatusCode}", Severity.Warning);
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async Task Add()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("server", new indigency());
+        var dialog = await Dialog.Show<AddIndigency>("Add Indigency", parameters).Result;
+    }
+
+    [Parameter]public residents _residents { get; set; } = new residents();
+
+    public async Task EditClearance(string id)
+    {
+        indigency[]? xindigency;
+        var xxindigency = from s in indigencylist where s.indi_id == id select s;
+        xindigency = xxindigency.ToArray();
+        _residents.res_id = xindigency[0].res_id;
+        _residents.fullname = xindigency[0].fullname;
+        _residents.age = xindigency[0].age;
+        _residents.citizenship = xindigency[0].citizenship;
+        _residents.civil = xindigency[0].status;
+        _residents.purok = xindigency[0].purok;
+        var parameters = new DialogParameters();
+        var updateClearance = indigencylist.FirstOrDefault(_ => _.indi_id == id);
+        parameters.Add("server", updateClearance);
+        parameters.Add("_residents", _residents);
+        var dialog = Dialog.Show<UpdateIndigency>("Update Indigency", parameters);
+        var result = await dialog.Result;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await GetOfficials();
+            await GetIndigency();
+            await InvokeAsync(() => StateHasChanged());
+        }
+    }
+
+    public async Task GetIndigency()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+        }
+
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Indigency/Indigency");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                indigencylist = JsonConvert.DeserializeObject<indigency[]>(contentrespose);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task<int> DeleteClearance(int id)
+    {
+        return id;
+
+    }
+
+    [Inject]
+    protected IJSRuntime JSRuntime { get; set; }
+
+    public async Task Print(string id)
+    {
+
+        bool? result = await Dialog.ShowMessageBox(
+        "Release",
+        "Released Document?",
+        yesText: "Release", cancelText: "Cancel");
+
+        if (result ?? false)
+        {
+            server = indigencylist.FirstOrDefault(c => c.indi_id == id);
+
+            int i = 0;
+
+            try
+            {
+                var xindigency = new indigency
+                    {
+                        type = server.type,
+                        indi_id = server.indi_id,
+                        res_id = server.res_id,
+                        fname = server.fname,
+                        mname = server.mname,
+                        lname = server.lname,
+                        ext = server.ext,
+                        age = server.age,
+                        citizenship = server.citizenship,
+                        status = server.status,
+                        purok = server.purok,
+                        request = server.request,
+                        date = server.date,
+                        fee = server.fee,
+                        receipt = server.receipt,
+                        stat = server.stat = "Released"
+                    };
+
+                using (HttpClient client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri($"{Nav.BaseUri}");
+                    var json = JsonConvert.SerializeObject(xindigency);
+                    HttpContent content = new StringContent(json);
+                    content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+                    HttpResponseMessage response = await client.PostAsync($"api/Indigency/UpdateIndigency", content).ConfigureAwait(false);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string contentresponse = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        i = JsonConvert.DeserializeObject<int>(contentresponse);
+                        if (i > 0)
+                        {
+                            await InvokeAsync(StateHasChanged);
+                            string path = $"printindigency/{id}";
+                            await OpenInNewTab(path);
+
+                        }
+                    }
+                    else
+                    {
+                        StateHasChanged();
+                    }
+                }
+            }
+            catch (Exception)
+            {
+
+            }
+        }
+
+
+       
+    }
+
+    public async ValueTask OpenInNewTab(string url)
+    {
+        await JSRuntime.InvokeVoidAsync("open", url, "_blank");
+    }
+}
+

@@ -1,0 +1,322 @@
+﻿@page "/residents"
+@using System.Net.Http.Headers
+@inject ILocalStorageService localStorage
+@using Microsoft.AspNetCore.SignalR.Client
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Nav
+
+<PageTitle>Residents Record</PageTitle>
+
+<br />
+<br />
+<MudContainer Class="d-flex justify-start mb-2">
+    <MudButton Disabled="@_processing" OnClick="Refresh" Variant="Variant.Outlined" Color="Color.Primary">
+        @if (_processing)
+        {
+            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+            <MudText Class="ms-2">Loading</MudText>
+        }
+        else
+        {
+            <MudText>Refresh</MudText>
+        }
+    </MudButton> &nbsp; &nbsp;
+    <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Tertiary" @onclick="(e => AddResidents())">Add New</MudButton>
+    <MudSpacer /> <MudSpacer /> <MudSpacer /> <MudSpacer /> <MudSpacer /> <MudSpacer /> <MudSpacer />
+    <MudTextField @bind-Value="txtsearch" Clearable
+                  TextChanged="@Search"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Label="Search"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  Class="xsearch">
+    </MudTextField>
+</MudContainer>
+
+<MudTable Breakpoint="Breakpoint.Sm" Class="ma-5" Dense="true" Hover="true" Items="@residentsList" FixedHeader="@fixed_header"
+          FixedFooter="@fixed_footer" Height="@(fixed_header || fixed_footer ?"450px": "")">
+    <ToolBarContent>
+        <MudSpacer />
+        <MudFab StartIcon="@Icons.Material.Filled.ImportExport" @onclick="ExcelExport"
+                Label="Export to Excel" Color="Color.Info" Size="Size.Small" />
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh Style="height:50px;">Photo</MudTh>
+        <MudTh>Household #</MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<residents, object>(c => c.fullname)">Name</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<residents, object>(c => c.purok)">Purok</MudTableSortLabel></MudTh>
+        <MudTh>Birthplace</MudTh>
+        <MudTh>Birthdate</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh></MudTh>
+        @* <MudTh></MudTh>*@
+    </HeaderContent>
+
+    <RowTemplate>
+        <MudTd id="rows" DataLabel="description">
+            <img src="data:image/bmp;base64, @(Convert.ToBase64String(@context.photo))" class="img" />
+        </MudTd>
+        <MudTd DataLabel="Household #">@context.household</MudTd>
+        <MudTd DataLabel="Full Name">@context.fullname</MudTd>
+        <MudTd DataLabel="Purok">@context.purok</MudTd>
+        <MudTd DataLabel="Birthplace">@context.birthplace</MudTd>
+        <MudTd DataLabel="Birthdate">@context.birthdate.ToString("d")</MudTd>
+        <MudTd DataLabel="Status">
+            @if (context.status == "Active")
+            {
+                <MudChip Color="Color.Success" Size="Size.Small">@context.status</MudChip>
+            }
+            else
+            {
+                <MudChip Color="Color.Secondary" Size="Size.Small">@context.status</MudChip>
+            }
+        </MudTd>
+        <MudTd>
+
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="edit" Class="btn2" Size="Size.Small"
+                           Variant="Variant.Outlined" Color="Color.Primary" @onclick="(e => UpdateResidents(context.res_id))"></MudIconButton>
+        </MudTd>
+
+    </RowTemplate>
+
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[]{50,200,500,1000,2000}" />
+    </PagerContent>
+</MudTable>
+
+<style>
+    .btn2 {
+        padding: 0em;
+        margin-left: -40px;
+    }
+
+    .img {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+    }
+
+    .title {
+        font-family: Cambria, Cochin, Georgia, Times, Times New Roman, serif;
+        font-size: 30px;
+    }
+</style>
+
+
+
+@if (hide)
+{
+    <MudTable Breakpoint="Breakpoint.Sm" Class="ma-5" Dense="true" Hover="true" Items="@xofficialList" FixedHeader="@fixed_header"
+              FixedFooter="@fixed_footer" Height="@(fixed_header || fixed_footer ?"500px": "")">
+        <HeaderContent>
+            <MudTh Style="height:50px;">Photo</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Position</MudTh>
+            <MudTh>Purok</MudTh>
+            <MudTh>Term Start</MudTh>
+            <MudTh>Term End</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+
+        <RowTemplate>
+
+            <MudTd id="rows" DataLabel="description">
+                <img src="data:image/bmp;base64, @(Convert.ToBase64String(@context.photo))" class="img" />
+            </MudTd>
+            <MudTd DataLabel="Full Name">@context.fullname</MudTd>
+            <MudTd DataLabel="Position">@context.position</MudTd>
+            <MudTd DataLabel="Address">@context.purok</MudTd>
+            <MudTd DataLabel="Term Start">@context.term_start.ToString("d")</MudTd>
+            <MudTd DataLabel="Term End">@context.term_end.ToString("d")</MudTd>
+        </RowTemplate>
+
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[]{50,200,500,1000,2000}" />
+        </PagerContent>
+    </MudTable>
+
+}
+
+
+
+
+
+
+@code {
+    officials[]? xofficialList;
+    bool hide = false;
+    public async Task GetOfficials()
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Officials/Officials");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                xofficialList = JsonConvert.DeserializeObject<officials[]>(contentrespose);
+                StateHasChanged();
+            }
+            else
+            {
+                Nav.NavigateTo("/auth403");
+            }
+        }
+    }
+
+
+
+    [Parameter] public residents server { get; set; } = new residents();
+    [Parameter] public household _household { get; set; } = new household();
+    residents xresidents = new();
+    residents[]? residentsList;
+    public string? txtsearch { get; set; }
+    bool fixed_header = true;
+    bool fixed_footer = false;
+    DateTime? date = DateTime.Today;
+
+
+    protected HubConnection hubConnection;
+    protected async override Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Nav.ToAbsoluteUri("/hub"))
+            .Build();
+
+        hubConnection.On("client", async () =>
+        {
+            await Task.Delay(2000);
+            await GetResidents();
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+
+    private bool _processing = false;
+    async Task Refresh()
+    {
+        if (hubConnection.State == HubConnectionState.Disconnected)
+        {
+            await hubConnection.StartAsync();
+        }
+        _processing = true;
+        await Task.Delay(2000);
+        _processing = false;
+        await GetResidents();
+    }
+
+    private async Task ExcelExport()
+    {
+        Nav.NavigateTo($"{Nav.BaseUri}api/Residents/Reports", true);
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await GetOfficials();
+            await GetResidents();
+            await InvokeAsync(() => StateHasChanged());
+        }
+    }
+
+    public async Task GetResidents()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+        }
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Residents/Residents");
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                residentsList = JsonConvert.DeserializeObject<residents[]>(contentrespose);
+                StateHasChanged();
+            }
+            else
+            {
+                await hubConnection.StopAsync();
+                Nav.NavigateTo("/auth403");
+            }
+        }
+    }
+
+
+
+    public async Task Search()
+    {
+        if (string.IsNullOrWhiteSpace(txtsearch))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        await hubConnection.StopAsync();
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Residents/SearchResidents?search={txtsearch}");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                residentsList = JsonConvert.DeserializeObject<residents[]>(contentrespose);
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add($"Warning: {response.StatusCode}", Severity.Warning);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task AddResidents()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("server", new residents());
+        var dialog = await Dialog.Show<AddResidents>("Add Residents", parameters).Result;
+    }
+
+
+    public async Task UpdateResidents(string id)
+    {
+        residents[]? _residents;
+        var xpatient = from s in residentsList where s.res_id == id select s;
+        _residents = xpatient.ToArray();
+        _household.house_id = _residents[0].house_id;
+        _household.householdno = _residents[0].household;
+        _household.purok = _residents[0].purok;
+
+        var parameters = new DialogParameters();
+        var updateresidents = residentsList.FirstOrDefault(_ => _.res_id == id);
+        parameters.Add("_household", _household);
+        parameters.Add("server", updateresidents);
+       
+        var dialog = await Dialog.Show<UpdateResidents>("Update Residents", parameters).Result;
+    }
+
+
+    private async Task<int> DeleteResidents(int id)
+    {
+        return id;
+    }
+}
+
+<style>
+    .btn2 {
+        padding: 0em;
+        margin-left: -60px;
+    }
+</style>

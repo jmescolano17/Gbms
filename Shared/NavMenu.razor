@@ -1,0 +1,73 @@
+﻿<div class="@NavMenuCssClass nav" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+
+            <MudListItem>
+                <MudNavLink Href="dashboard" Icon="@Icons.Material.Filled.Dashboard" IconColor="Color.Surface">
+                    Dashboard
+                </MudNavLink>
+            </MudListItem>
+
+        <MudListItem>
+            <MudNavLink Href="officials" Icon="@Icons.Material.Filled.Person4" IconColor="Color.Surface" >
+                Officials & Staff
+            </MudNavLink>
+        </MudListItem>
+        <MudListItem>
+            <MudNavLink Href="household" Icon="@Icons.Material.Filled.Home" IconColor="Color.Surface">
+                Household Record
+            </MudNavLink>
+        </MudListItem>
+
+        <MudListItem>
+            <MudNavLink Href="residents" Icon="@Icons.Material.Filled.Person3" IconColor="Color.Surface">
+                Residents record </MudNavLink>
+        </MudListItem>
+
+        
+        <MudTreeView T="string">
+            <MudTreeViewItem Value="@("Clearance/Certificate")">
+                <MudItem>
+                    <MudNavLink Href="clearance" Icon="@Icons.Material.Filled.FilePresent" IconColor="Color.Surface" Style="font-size:13px">
+                        Brgy. Clearance
+                    </MudNavLink>
+                </MudItem> 
+                <MudItem>
+                    <MudNavLink Href="indigency" Icon="@Icons.Material.Filled.FilePresent" IconColor="Color.Surface"  Style="font-size:13px">
+                        Brgy. Indigency
+                    </MudNavLink>
+                </MudItem> 
+                <MudItem>
+                    <MudNavLink Href="business" Icon="@Icons.Material.Filled.FilePresent" IconColor="Color.Surface" Style="font-size:13px">
+                        Business Permit
+                    </MudNavLink>
+                </MudItem>
+            </MudTreeViewItem>
+        </MudTreeView>
+     
+       
+        <MudListItem>
+            <MudNavLink Href="blotter" Icon="@Icons.Material.Filled.AddAlert" IconColor="Color.Surface">
+                Blotter record </MudNavLink>
+        </MudListItem>
+      
+
+        <MudListItem>
+            <MudNavLink Href="revenue" Icon="@Icons.Material.Filled.Payment" IconColor="Color.Surface">
+                Revenue </MudNavLink>
+        </MudListItem>
+    </nav>
+</div>
+
+@code {
+    
+    private bool hide = false;
+    private bool collapseNavMenu = true;
+    private bool expandSubMenu;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

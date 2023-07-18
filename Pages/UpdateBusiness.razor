@@ -1,0 +1,143 @@
+﻿@inject HttpClient Http
+@inject ISnackbar Snackbar
+@using System.Net.Http.Headers
+@using Gbms.Models;
+@inject ILocalStorageService localStorage
+@inject NavigationManager Nav
+@inject HttpClient httpClient
+
+<MudDialog>
+    <DialogContent>
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-6">
+                    <MudAutocomplete Clearable T="residents" Label="Search Resident" @bind-Value="_residents" Variant="Variant.Text" Margin="Margin.Dense"
+                                     SearchFunc="@Search" ToStringFunc="@(e=> e==null?null : $"{e.fullname}")" Strict="false">
+                    </MudAutocomplete>
+                    @if (_hide)
+                    {
+                        <MudTextField Clearable @bind-Value="@_residents.res_id" Label="Resident ID" Variant="Variant.Text" Margin="Margin.Dense" ReadOnly="true"></MudTextField>
+                    }
+                    <MudTextField Clearable @bind-Value="@server.bsns_name" Label="Business Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+                    <MudSelect @bind-Value="@server.purok" Margin="Margin.Dense" T="string" Label="Purok" Variant="Variant.Text">
+                        <MudSelectItem Value="@("Purok 1")" />
+                        <MudSelectItem Value="@("Purok 2")" />
+                        <MudSelectItem Value="@("Purok 3")" />
+                        <MudSelectItem Value="@("Purok 4")" />
+                        <MudSelectItem Value="@("Purok 5")" />
+                        <MudSelectItem Value="@("Purok 6")" />
+                        <MudSelectItem Value="@("Purok 7")" />
+                        <MudSelectItem Value="@("Purok 8")" />
+                        <MudSelectItem Value="@("Purok 9")" />
+                    </MudSelect>
+                    <MudTextField Clearable @bind-Value="@server.date" Label="Date" Variant="Variant.Text"
+                                  Margin="Margin.Dense" InputType="InputType.Date" Format="yyyy-MM-dd"></MudTextField>
+                </div>
+                <div class="col-sm-6">
+                  @*  <MudTextField Clearable ReadOnly @bind-Value="@server.fee" Placeholder="0.00" Label="Fee" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>*@
+                    <MudTextField Clearable  @bind-Value="@server.receipt" Label="Receipt #" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+                    <MudTextField Clearable @bind-Value="@server.bsns_name" Label="Business Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+                    <MudSelect @bind-Value="@server.stat" Margin="Margin.Dense" T="string" Label="Status" Variant="Variant.Text">
+                        <MudSelectItem Value="@("Pending")" />
+                        <MudSelectItem Value="@("Released")" />
+                    </MudSelect>
+                    <br /><br /><br />
+                    <MudToolBar>
+                        <MudSpacer />
+                        <MudButton Variant="Variant.Outlined" Size="Size.Medium" Color="Color.Primary" @onclick="Cancel">Cancel</MudButton>&nbsp;
+                        <MudButton Variant="Variant.Outlined" Size="Size.Medium" Color="Color.Tertiary" @onclick="Save">Save</MudButton>
+                    </MudToolBar>
+                </div>
+            </div>
+        </div>
+        <br />
+        <br />
+    </DialogContent>
+</MudDialog>
+
+@code {
+    private bool _hide = false;
+
+
+    private async Task<IEnumerable<residents>> Search(string value)
+    {
+        HttpClient httpClient = new HttpClient();
+        httpClient.BaseAddress = new Uri($"{Nav.BaseUri}");
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+        var residents = await httpClient.GetFromJsonAsync<List<residents>>($"api/Residents/SearchResidents?search={value}");
+        return residents;
+
+    }
+
+    DateTime? date = DateTime.Today;
+    [Parameter] public residents _residents { get; set; } = new residents();
+    [Parameter] public business server { get; set; } = new business();
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private string GetId(string complainant)
+    {
+        string alphanumericComplainant = new string(complainant.Where(c => Char.IsLetterOrDigit(c)).ToArray());
+        int hashCode = alphanumericComplainant.GetHashCode();
+        return $"{hashCode:X}";
+    }
+
+    public async Task Save()
+    {
+        int i = 0;
+        var xbusiness = new business
+            {
+                type = server.type,
+                bsns_id = server.bsns_id,
+                res_id = _residents.res_id,
+                fname = _residents.fname,
+                mname = _residents.mname,
+                lname = _residents.lname,
+                ext = _residents.ext,
+                bsns_name = server.bsns_name,
+                purok = server.purok,
+                date = server.date,
+                fee = server.fee = "100",
+                receipt = server.receipt,
+                stat = server.stat
+               
+            };
+
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            var json = JsonConvert.SerializeObject(xbusiness);
+            HttpContent content = new StringContent(json);
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.PostAsync($"api/Business/UpdateBusiness", content);
+            if (response.IsSuccessStatusCode)
+            {
+                string contentresponse = await response.Content.ReadAsStringAsync();
+                i = JsonConvert.DeserializeObject<int>(contentresponse);
+                if (i > 0)
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        Snackbar.Add($"Done: Successfully Saved!", Severity.Success);
+                        MudDialog.Cancel();
+                        await InvokeAsync(StateHasChanged);
+                    });
+                }
+            }
+            else
+            {
+                await InvokeAsync(() =>
+                {
+                    Snackbar.Add($"Warning: {response.ReasonPhrase}", Severity.Warning);
+                    StateHasChanged();
+                });
+            }
+        }
+    }
+
+}

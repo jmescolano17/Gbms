@@ -1,0 +1,549 @@
+﻿@page "/dashboard"
+@using System.Net.Http.Headers
+@inject ILocalStorageService localStorage
+@using Gbms.Models;
+@using Microsoft.AspNetCore.SignalR.Client;
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject NavigationManager Nav
+@inject IJSRuntime jsRuntime
+
+<PageTitle>Dashboard</PageTitle>
+<br />
+<br />
+<br />
+
+
+<MudGrid Class="mb-3">
+
+    <MudItem xs="6" sm="4" md="4">
+        <MudPaper Class="pa-4 rounded-lg" Elevation="25">
+            <MudGrid>
+                <MudItem>
+                    <MudIcon Style="@($"color:{Colors.Red.Accent3};font-size:3rem;")" Icon="@Icons.Material.Outlined.People" />
+                </MudItem>
+                <MudItem>
+                    <MudText Typo="Typo.h4"><b>@TotalResidents</b></MudText>
+                    <MudText Typo="Typo.subtitle1">Total Population</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="6" sm="4" md="4">
+        <MudPaper Class="pa-4 rounded-lg" Elevation="25">
+            <MudGrid>
+                <MudItem>
+                    <MudIcon Color="Color.Info" Style="font-size:3rem;" Icon="@Icons.Material.Outlined.House" />
+                </MudItem>
+                <MudItem>
+                    <MudText Typo="Typo.h4"><b>@TotalHousehold</b></MudText>
+                    <MudText Typo="Typo.subtitle1">Total Household</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="6" sm="4" md="4">
+        <MudPaper Class="pa-4 rounded-lg" Elevation="25">
+            <MudGrid>
+                <MudItem>
+                    <MudIcon Style="font-size:3rem; color:#1de9b6;" Icon="@Icons.Material.Outlined.Male" />
+                </MudItem>
+                <MudItem>
+                    <MudText Typo="Typo.h4"><b>@TotalMale</b></MudText>
+                    <MudText Typo="Typo.subtitle1">Total Male</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <br />
+
+    <MudItem xs="6" sm="4" md="4">
+        <MudPaper Class="pa-4 rounded-lg" Elevation="25">
+            <MudGrid>
+                <MudItem>
+                    <MudIcon Style="@($"color:{Colors.Red.Accent3};font-size:3rem;")" Icon="@Icons.Material.Outlined.Female" />
+                </MudItem>
+                <MudItem>
+                    <MudText Typo="Typo.h4"><b>@TotalFemale</b></MudText>
+                    <MudText Typo="Typo.subtitle1">Total Female</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="6" sm="4" md="4">
+        <MudPaper Class="pa-4 rounded-lg" Elevation="25">
+            <MudGrid>
+                <MudItem>
+                    <MudIcon Color="Color.Info" Style="font-size:3rem;" Icon="@Icons.Material.Outlined.FilePresent" />
+                </MudItem>
+                <MudItem>
+                    <MudText Typo="Typo.h4"><b>@TotalClearance</b></MudText>
+                    <MudText Typo="Typo.subtitle1">Total Clearance</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="6" sm="4" md="4">
+        <MudPaper Class="pa-4 rounded-lg" Elevation="25">
+            <MudGrid>
+                <MudItem>
+                    <MudIcon Style="font-size:3rem; color:#1de9b6;" Icon="@Icons.Material.Outlined.FilePresent" />
+                </MudItem>
+                <MudItem>
+                    <MudText Typo="Typo.h4"><b>@TotalIndigency</b></MudText>
+                    <MudText Typo="Typo.subtitle1">Total Indigency</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <br />
+
+    <MudItem xs="6" sm="4" md="4">
+        <MudPaper Class="pa-4 rounded-lg" Elevation="25">
+            <MudGrid>
+                <MudItem>
+                    <MudIcon Style="@($"color:{Colors.Red.Accent3};font-size:3rem;")" Icon="@Icons.Material.Outlined.FilePresent" />
+                </MudItem>
+                <MudItem>
+                    <MudText Typo="Typo.h4"><b>@TotalBusiness</b></MudText>
+                    <MudText Typo="Typo.subtitle1">Total Business Permit</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="6" sm="4" md="4">
+        <MudPaper Class="pa-4 rounded-lg" Elevation="25">
+            <MudGrid>
+                <MudItem>
+                    <MudIcon Color="Color.Info" Style="font-size:3rem;" Icon="@Icons.Material.Outlined.Doorbell" />
+                </MudItem>
+                <MudItem>
+                    <MudText Typo="Typo.h4"><b>@TotalPending</b></MudText>
+                    <MudText Typo="Typo.subtitle1">Blotter Pending</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="6" sm="4" md="4">
+        <MudPaper Class="pa-4 rounded-lg" Elevation="25">
+            <MudGrid>
+                <MudItem>
+                    <MudIcon Style="font-size:3rem; color:#1de9b6;" Icon="@Icons.Material.Outlined.Payment" />
+                </MudItem>
+                <MudItem>
+                    <MudText Typo="Typo.h4"><b>@MonthTotalRevenue</b></MudText>
+                    <MudText Typo="Typo.subtitle1">Monthly Revenue</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+
+
+
+<MudGrid>
+    <MudItem xs="12" sm="12">
+        <MudPaper Elevation="25" Class="pa-4 rounded-lg">
+            <MudText Typo="Typo.h6" Style="font-family: Orbitron;">CHART</MudText>
+
+            <MudChart ChartType="ChartType.Pie" InputData="@data" @bind-SelectedIndex="Index" InputLabels="@labels" Width="300px" Height="300px" />
+
+        </MudPaper>
+    </MudItem>
+  @*  <MudItem xs="12" sm="5">
+        <MudPaper Elevation="25" Class="pa-4 rounded-lg">
+            <div class="clock-container">
+                <div id="MyClockDisplay" class="clock"></div>
+            </div>
+        </MudPaper>
+    </MudItem>*@
+</MudGrid>
+
+<style>
+    .clock-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+    }
+
+    .clock {
+        font-size: 60px;
+        color: #17D4FE;
+        font-family: Orbitron;
+        letter-spacing: 7px;
+    }
+</style>
+
+@code {
+
+    private int Index = -1;
+    int dataSize = 4;
+    double[] data;
+    string[] labels = { "Population", "Household", "Male", "Female" };
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        data = new double[dataSize];
+        await UpdateChartData();
+       
+    }
+
+    private async Task UpdateChartData()
+    {
+        data = new double[] { TotalResidents, TotalHousehold, TotalMale, TotalFemale };
+    }
+
+
+
+
+    officials[]? xofficialList;
+    public async Task GetOfficials()
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Officials/Officials");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                xofficialList = JsonConvert.DeserializeObject<officials[]>(contentrespose);
+                StateHasChanged();
+            }
+            else
+            {
+                Nav.NavigateTo("/dashboarduser");
+            }
+        }
+    }
+
+
+
+    //Total Residents
+    residents xresidents = new();
+    residents[]? residentlist;
+    int TotalResidents;
+
+    //Total Household
+    household xhousehold = new();
+    household[]? householdlist;
+    int TotalHousehold;
+    int TotalMale;
+    int TotalFemale;
+
+    //Total Business Permit
+    business xbusiness = new();
+    business[]? businesslist;
+    int TotalBusiness;
+
+    //Total Clearance
+    clearance xclearance = new();
+    clearance[]? clearancelist;
+    int TotalClearance;
+
+    //Total Indigency
+    indigency xindigency = new();
+    indigency[]? indigencylist;
+    int TotalIndigency;
+
+    //Revenue This Month
+    revenue[]? revenuelist;
+    int MonthTotalRevenue;
+
+    //Total Blotter Pending
+    blotter xblotter = new();
+    blotter[]? blotterlist;
+    int TotalPending;
+    int TotalResolved;
+
+
+    //SignalR
+    private HubConnection? hubConnection;
+    public async Task TotalRevenueMonth()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+
+        }
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri(Nav.BaseUri);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync("api/Revenue/MonthTotalRevenue");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentResponse = await response.Content.ReadAsStringAsync();
+                MonthTotalRevenue = JsonConvert.DeserializeObject<int>(contentResponse);
+                StateHasChanged();
+            }
+
+        }
+    }
+
+
+
+    public async Task PendingTotal()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+
+        }
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri(Nav.BaseUri);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync("api/Blotter/TotalPending");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentResponse = await response.Content.ReadAsStringAsync();
+                TotalPending = JsonConvert.DeserializeObject<int>(contentResponse);
+                StateHasChanged();
+            }
+
+        }
+    }
+
+    public async Task ResolvedTotal()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+
+        }
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri(Nav.BaseUri);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync("api/Blotter/TotalResolved");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentResponse = await response.Content.ReadAsStringAsync();
+                TotalResolved = JsonConvert.DeserializeObject<int>(contentResponse);
+                StateHasChanged();
+            }
+
+        }
+    }
+
+
+    public async Task GetTotalResidents()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+        }
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Residents/TotalResidents");
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                TotalResidents = JsonConvert.DeserializeObject<int>(contentrespose);
+                StateHasChanged();
+            }
+        }
+    }
+
+    public async Task GetTotalHousehold()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+
+        }
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Household/TotalHousehold");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentResponse = await response.Content.ReadAsStringAsync();
+                TotalHousehold = JsonConvert.DeserializeObject<int>(contentResponse);
+                StateHasChanged();
+            }
+
+        }
+    }
+
+    public async Task GetTotalMale()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+
+        }
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Residents/TotalMale");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentResponse = await response.Content.ReadAsStringAsync();
+                TotalMale = JsonConvert.DeserializeObject<int>(contentResponse);
+                StateHasChanged();
+            }
+
+        }
+    }
+
+    public async Task GetTotalFemale()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+
+        }
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Residents/TotalFemale");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentResponse = await response.Content.ReadAsStringAsync();
+                TotalFemale = JsonConvert.DeserializeObject<int>(contentResponse);
+                StateHasChanged();
+            }
+
+        }
+    }
+
+
+    public async Task GetTotalBusiness()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+
+        }
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Business/TotalBusiness");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentResponse = await response.Content.ReadAsStringAsync();
+                TotalBusiness = JsonConvert.DeserializeObject<int>(contentResponse);
+                StateHasChanged();
+            }
+
+        }
+    }
+
+
+    public async Task GetTotalClearance()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+
+        }
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Clearance/TotalClearance");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentResponse = await response.Content.ReadAsStringAsync();
+                TotalClearance = JsonConvert.DeserializeObject<int>(contentResponse);
+                StateHasChanged();
+            }
+
+        }
+    }
+
+
+    public async Task GetTotalIndigency()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+
+        }
+
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Indigency/TotalIndigency");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentResponse = await response.Content.ReadAsStringAsync();
+                TotalIndigency = JsonConvert.DeserializeObject<int>(contentResponse);
+                StateHasChanged();
+            }
+
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            //await jsRuntime.InvokeVoidAsync("showTime");
+            hubConnection = new HubConnectionBuilder()
+           .WithUrl(Nav.ToAbsoluteUri("/hub"))
+           .Build();
+
+            hubConnection.On("client", async () =>
+           {
+               await Task.Delay(2000);
+               await base.OnInitializedAsync();
+               await GetTotalResidents();
+               await GetTotalHousehold();
+               await GetTotalMale();
+               await GetTotalFemale();
+               await GetTotalBusiness();
+               await GetTotalClearance();
+               await GetTotalIndigency();
+               await TotalRevenueMonth();
+               await PendingTotal();
+               await ResolvedTotal();
+               await UpdateChartData();
+
+               await InvokeAsync(StateHasChanged);
+           });
+            await hubConnection.StartAsync();
+
+            await base.OnInitializedAsync();
+            await GetTotalResidents();
+            await GetOfficials();
+            await GetTotalHousehold();
+            await GetTotalMale();
+            await GetTotalFemale();
+            await GetTotalBusiness();
+            await GetTotalClearance();
+            await GetTotalIndigency();
+            await TotalRevenueMonth();
+            await PendingTotal();
+            await ResolvedTotal();
+            await UpdateChartData();
+            await InvokeAsync(StateHasChanged);
+
+        }
+
+
+    }
+
+}

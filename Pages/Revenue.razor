@@ -1,0 +1,226 @@
+﻿@page "/revenue"
+@inject NavigationManager Nav
+@using System.Net.Http.Headers
+@inject ILocalStorageService localStorage
+@inject ISnackbar Snackbar
+@using Microsoft.AspNetCore.SignalR.Client;
+
+<PageTitle>Revenue</PageTitle>
+
+<br /><br /><br />
+
+ <MudGrid Class="mb-3">
+
+        <MudItem xs="6" sm="4" md="4">
+            <MudPaper Class="pa-4 rounded-lg" Elevation="25">
+                <MudGrid>
+                    <MudItem>
+                        <MudIcon Style="@($"color:{Colors.Red.Accent3};font-size:3rem;")" Icon="@Icons.Material.Outlined.Payment" />
+                    </MudItem>
+                    <MudItem>
+                    <MudText Typo="Typo.h4"><b>@TodayTotalRevenue</b></MudText>
+                        <MudText Typo="Typo.subtitle1">Today's Revenue</MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="6" sm="4" md="4">
+            <MudPaper Class="pa-4 rounded-lg" Elevation="25">
+                <MudGrid>
+                    <MudItem>
+                    <MudIcon Color="Color.Info" Style="font-size:3rem;" Icon="@Icons.Material.Outlined.Payment" />
+                    </MudItem>
+                    <MudItem>
+                    <MudText Typo="Typo.h4"><b>@MonthTotalRevenue</b></MudText>
+                        <MudText Typo="Typo.subtitle1">Monthly Revenue</MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+
+    <MudItem xs="6" sm="4" md="4">
+        <MudPaper Class="pa-4 rounded-lg" Elevation="25">
+            <MudGrid>
+                <MudItem>
+                    <MudIcon Color="Color.Warning" Style="font-size:3rem;" Icon="@Icons.Material.Outlined.Today" />
+                </MudItem>
+                <MudItem>
+                    <MudText Typo="Typo.h4"><b>@Recent</b></MudText>
+                    <MudText Typo="Typo.subtitle1">Today's Transaction</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+        </MudGrid>
+
+@if (revenuelist == null)
+{
+    <p1>No Records Found....</p1>
+}
+else
+{
+    <MudTable Breakpoint="Breakpoint.Sm" Class="ma-5" Dense="true" Hover="true" Items="@revenuelist" FixedHeader="@fixed_header"
+          FixedFooter="@fixed_footer" Height="@(fixed_header || fixed_footer ?"450px": "")">
+
+          <ToolBarContent>
+            <MudToolBar>
+                <MudGrid>
+                    <MudItem>
+                        <MudIcon Style="@($"color:{Colors.Red.Accent3};font-size:3rem;")" Icon="@Icons.Material.Outlined.BusinessCenter" Size="Size.Small" />
+                    </MudItem>
+                    <MudItem>
+                        <MudText Typo="Typo.h6" Style="font-family:Tahoma">Transactions Today</MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudToolBar>
+
+          </ToolBarContent>
+
+        <HeaderContent>
+            <MudTh>
+                <MudTableSortLabel SortBy="new Func<revenue, object>(c => c.date)" InitialDirection="SortDirection.Descending">
+                    Date & Time
+                </MudTableSortLabel>
+            </MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Amount</MudTh>
+        </HeaderContent>
+
+        <RowTemplate>
+            <MudTd DataLabel="ID #">@context.date</MudTd>
+            <MudTd DataLabel="Full Name">@context.fullname</MudTd>
+            <MudTd DataLabel="Household #">@context.type</MudTd>
+            <MudTd DataLabel="Purok">@context.fee</MudTd>
+
+        </RowTemplate>
+
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[]{50,200,500,1000,2000}" />
+        </PagerContent>
+    </MudTable>
+}
+
+
+
+
+@code
+{
+    officials[]? xofficialList;
+    public async Task GetOfficials()
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Officials/Officials");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                xofficialList = JsonConvert.DeserializeObject<officials[]>(contentrespose);
+                StateHasChanged();
+            }
+            else
+            {
+                Nav.NavigateTo("/auth403");
+            }
+        }
+    }
+
+
+
+    revenue[]? revenuelist;
+    public int TodayTotalRevenue { get; set; } = 0;
+    public int MonthTotalRevenue { get; set; } = 0;
+    public int Recent { get; set; } = 0;
+
+
+    bool fixed_header = true;
+    bool fixed_footer = false;
+
+    public async Task GetRevenue()
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            HttpResponseMessage response = await client.GetAsync($"api/Revenue/Revenue");
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                revenuelist = JsonConvert.DeserializeObject<revenue[]>(contentrespose);
+                StateHasChanged();
+            }
+           else
+            {
+                Nav.NavigateTo("/auth403");
+            }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await GetOfficials();
+            await GetRevenue();
+            await InvokeAsync(() => StateHasChanged());
+        }
+    }
+
+
+    public async Task ToTalRevenueToday()
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            HttpResponseMessage response = await client.GetAsync($"api/Revenue/TodayTotalRevenue");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentResponse = await response.Content.ReadAsStringAsync();
+                TodayTotalRevenue = JsonConvert.DeserializeObject<int>(contentResponse);
+                StateHasChanged();
+            }
+        }
+    }
+
+    public async Task TotalRevenueMonth()
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            HttpResponseMessage response = await client.GetAsync($"api/Revenue/MonthTotalRevenue");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentResponse = await response.Content.ReadAsStringAsync();
+                MonthTotalRevenue = JsonConvert.DeserializeObject<int>(contentResponse);
+                StateHasChanged();
+            }
+        }
+    }
+
+    public async Task TotalRecent()
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            HttpResponseMessage response = await client.GetAsync($"api/Revenue/Recent");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentResponse = await response.Content.ReadAsStringAsync();
+                Recent = JsonConvert.DeserializeObject<int>(contentResponse);
+                StateHasChanged();
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ToTalRevenueToday();
+        await TotalRecent();
+        await TotalRevenueMonth();
+        StateHasChanged();
+    }
+}

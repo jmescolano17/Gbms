@@ -1,0 +1,97 @@
+﻿@inherits LayoutComponentBase
+@inject ILocalStorageService localStorage
+@inject MudThemeProvider _mudthemeprovider
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject HttpClient http
+@using System.Net.Http.Headers
+@using Microsoft.AspNetCore.SignalR.Client;
+
+<MudThemeProvider @ref="_mudthemeprovider"
+                  IsDarkMode="_mudthemeprovider.IsDarkMode" />
+<MudDialogProvider FullWidth="true"
+                   MaxWidth="MaxWidth.Small"
+                   Position="DialogPosition.TopCenter" />
+<MudSnackbarProvider/>
+
+<MudLayout>
+    <MudAppBar Elevation="0" Color="Color.Primary">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Class="ml-1"><img src="logo.png" class="logo" />BRGY. GLAMANG</MudText>
+        <MudSpacer />
+        <MudIconButton @onclick="ToggleDarkMode" Color="Color.Inherit" Icon="@modeIcon" />
+        <MudText>@clerk</MudText>
+        <MudMenu Label="Menu" Dense="true" Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit">
+            <MudMenuItem Icon="@Icons.Material.Filled.Logout" @onclick="logout">Logout</MudMenuItem>
+        </MudMenu>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Docked" Elevation="2">
+        <NavMenu />
+    </MudDrawer>
+  
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+<style>
+    .logo {
+        width: 50px;
+    }
+</style>
+
+@code {
+    private string clerk;
+
+    public async Task Clerk()
+    {
+        clerk = await localStorage.GetItemAsStringAsync("name");
+    }
+
+    private MudTheme _theme = new();
+    private string modeIcon => _isDarkMode ? Icons.Outlined.LightMode : Icons.Outlined.DarkMode;
+    private bool _isDarkMode;
+    private bool _drawerOpen = true;
+
+
+    public async Task logout()
+    {
+        await localStorage.RemoveItemAsync("token");
+        if (await localStorage.GetItemAsStringAsync("token") == null)
+        {
+            Nav.NavigateTo("/");
+        }
+    }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Clerk();
+            string? storedValue = await localStorage.GetItemAsync<string>("IsDarkMode");
+            _isDarkMode = storedValue != null ? Convert.ToBoolean(storedValue) : false;
+            _mudthemeprovider.IsDarkMode = _isDarkMode;
+            StateHasChanged();
+
+        }
+    }
+
+    private Timer _timer;
+    private void ToggleDarkMode()
+    {
+        _isDarkMode = !_isDarkMode;
+        _mudthemeprovider.IsDarkMode = _isDarkMode;
+        localStorage.SetItemAsync("IsDarkMode", _isDarkMode.ToString());
+    }
+
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+  
+}

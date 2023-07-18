@@ -1,0 +1,125 @@
+﻿@inject HttpClient Http
+@inject ISnackbar Snackbar
+@using System.Net.Http.Headers
+@inject ILocalStorageService localStorage
+@inject NavigationManager Nav
+
+<MudDialog>
+    <DialogContent>
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-6">
+
+                    <MudTextField Clearable @bind-Value="@server.fname" Label="First Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+                    <MudTextField Clearable @bind-Value="@server.mname" Label="Middle Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+                    <MudTextField Clearable @bind-Value="@server.lname" Label="Last Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+                    <MudTextField Clearable @bind-Value="@server.ext" Label="Extension" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+                    <MudSelect @bind-Value="@server.gender" Margin="Margin.Dense" T="string" Label="Gender" Variant="Variant.Text">
+                        <MudSelectItem Value="@("Male")" />
+                        <MudSelectItem Value="@("Female")" />
+                    </MudSelect>
+                 
+                </div>
+                <div class="col-sm-6">
+                  
+                    <MudSelect @bind-Value="@server.purok" Margin="Margin.Dense" T="string" Label="Purok" Variant="Variant.Text">
+                        <MudSelectItem Value="@("Purok 1")" />
+                        <MudSelectItem Value="@("Purok 2")" />
+                        <MudSelectItem Value="@("Purok 3")" />
+                        <MudSelectItem Value="@("Purok 4")" />
+                        <MudSelectItem Value="@("Purok 5")" />
+                        <MudSelectItem Value="@("Purok 6")" />
+                        <MudSelectItem Value="@("Purok 7")" />
+                        <MudSelectItem Value="@("Purok 8")" />
+                        <MudSelectItem Value="@("Purok 9")" />
+                    </MudSelect>
+                    <MudTextField Clearable @bind-Value="@server.male" Label="Total Male" Variant="Variant.Text" Margin="Margin.Dense" OnBlur="CalculateTotal"></MudTextField>
+                    <MudTextField Clearable @bind-Value="@server.female" Label="Total Female" Variant="Variant.Text" Margin="Margin.Dense" OnBlur="CalculateTotal"></MudTextField>
+                    @if (_hide)
+                    {
+                        <MudTextField Clearable @bind-Value="@server.total" Label="Total" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+                    }
+             
+                    <MudSelect @bind-Value="@server.status" Margin="Margin.Dense" T="string" Label="Status" Variant="Variant.Text">
+                        <MudSelectItem Value="@("Active")" />
+                        <MudSelectItem Value="@("Inactive")" />
+                    </MudSelect>
+                    <MudToolBar>
+                        <MudSpacer />
+                        <MudButton Variant="Variant.Outlined" Size="Size.Medium" Color="Color.Primary" @onclick="Cancel">Cancel</MudButton>&nbsp;
+                        <MudButton Variant="Variant.Outlined" Size="Size.Medium" Color="Color.Tertiary" @onclick="Save">Update</MudButton>
+                    </MudToolBar>
+                </div>
+            </div>
+        </div>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    private bool _hide = false;
+    DateTime? date = DateTime.Today;
+    [Parameter] public household server { get; set; } = new household();
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    private void CalculateTotal()
+    {
+        server.total = server.male + server.female + 1;
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+    private async Task Save()
+    {
+        int i = 0;
+        var xhousehold = new household
+            {
+                house_id = @server.house_id,
+                fname = server.fname,
+                mname = server.mname,
+                lname = server.lname,
+                ext = server.ext,
+                householdno = server.householdno,
+                gender = server.gender,
+                purok = server.purok,
+                male = server.male,
+                female = server.female,
+                total = server.total,
+                status = server.status,
+            };
+
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            var json = JsonConvert.SerializeObject(xhousehold);
+            HttpContent content = new StringContent(json);
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.PostAsync($"api/Household/UpdateHousehold", content);
+            if (response.IsSuccessStatusCode)
+            {
+                string contentresponse = await response.Content.ReadAsStringAsync();
+                i = JsonConvert.DeserializeObject<int>(contentresponse);
+                if (i > 0)
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        Snackbar.Add($"Done: Successfully Updated!", Severity.Success);
+                        MudDialog.Cancel();
+                        await InvokeAsync(StateHasChanged);
+                    });
+                }
+            }
+            else
+            {
+                await InvokeAsync(() =>
+                {
+                    Snackbar.Add($"Warning: {response.ReasonPhrase}", Severity.Warning);
+                    StateHasChanged();
+                });
+            }
+        }
+
+    }
+}

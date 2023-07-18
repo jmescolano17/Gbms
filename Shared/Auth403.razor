@@ -1,0 +1,37 @@
+﻿@page "/auth403"
+@using Gbms.Models;
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject NavigationManager Nav
+@using System.Text.RegularExpressions
+@inject ISnackbar Snackbar
+@inject HttpClient http
+@using System.Net.Http.Headers
+
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<center>
+    <h1>Error 403: Forbidden</h1>
+    <p>You are not authorized to access this resource.</p>
+</center>
+
+@code{
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var token = await localStorage.GetItemAsync<string>("token");
+            if (string.IsNullOrEmpty(token))
+            {
+                http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                Nav.NavigateTo("/");
+            }
+        }
+    }
+}
+

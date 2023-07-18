@@ -1,0 +1,395 @@
+﻿@page "/clearanceuser"
+@using System.Net.Http.Headers
+@inject ILocalStorageService localStorage
+@using Gbms.Shared;
+@using Microsoft.AspNetCore.SignalR.Client;
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject IJSRuntime IJS
+@inject NavigationManager Nav
+
+
+
+
+<PageTitle>Brgy. Clearance</PageTitle>
+<br />
+<br />
+
+<MudContainer Class="d-flex justify-start mb-2">
+    <MudButton Disabled="@_processing" OnClick="Refresh" Variant="Variant.Outlined" Color="Color.Primary">
+        @if (_processing)
+        {
+            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+            <MudText Class="ms-2">Loading</MudText>
+        }
+        else
+        {
+            <MudText>Refresh</MudText>
+        }
+    </MudButton> &nbsp;&nbsp;
+    <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Tertiary" @onclick="(e => AddClearance())">Add New</MudButton>
+    <MudSpacer /> <MudSpacer /> <MudSpacer />
+    <MudSpacer /> <MudSpacer /> <MudSpacer />
+    <MudTextField @bind-Value="txtsearch" Clearable
+                  TextChanged="@Search"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Label="Search"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  Class="xsearch">
+    </MudTextField>
+</MudContainer>
+<MudTable Breakpoint="Breakpoint.Sm" Class="ma-5" Dense="true"
+          Hover="true" Items="@clearancelist"
+          FixedHeader="@fixed_header" FixedFooter="@fixed_footer"
+          Height="@(fixed_header || fixed_footer ?"450px": "")">
+    <ToolBarContent>
+        <MudSpacer /> <MudSpacer /> <MudSpacer />
+        <MudToolBar>
+            <MudDateRangePicker Label="Select Date From - To" Margin="Margin.Dense" DateRange="_dateRange" DateRangeChanged="@(value =>
+            { _dateRange = value; SearchDate(); })" DateFormat="yyyy-MM-dd" />
+        </MudToolBar>
+
+         @*   <MudFab StartIcon="@Icons.Material.Filled.ImportExport" @onclick="ExcelExport"
+        Label="Export to Excel" Color="Color.Info" Size="Size.Small" />*@
+    </ToolBarContent>
+    <HeaderContent>
+
+        <MudTh>
+            <MudTableSortLabel SortBy="new Func<clearance, object>(c => c.date)" InitialDirection="SortDirection.Descending">
+                Date & Time
+            </MudTableSortLabel>
+        </MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<clearance, object>(c => c.fullname)">Name</MudTableSortLabel></MudTh>
+        @* <MudTh><MudTableSortLabel SortBy="new Func<clearance, object>(c => c.purok)">Purok</MudTableSortLabel></MudTh>*@
+        <MudTh>Request</MudTh>
+        <MudTh>Fee</MudTh>
+        <MudTh>Receipt #</MudTh>
+        <MudTh>Clerk</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+
+    <RowTemplate>
+
+        <MudTd DataLabel="Date & Time">@context.date</MudTd>
+        <MudTd DataLabel="Full Name">@context.fullname</MudTd>
+        @* <MudTd DataLabel="Purok">@context.purok</MudTd>*@
+        <MudTd DataLabel="Request">@context.request</MudTd>
+        <MudTd DataLabel="Fee">@context.fee</MudTd>
+        <MudTd DataLabel="Receipt #">@context.receipt</MudTd>
+        <MudTd DataLabel="Clerk">@context.clerk</MudTd>
+        <MudTd DataLabel="Status">
+            <span class="@GetStatusColor(context.stat)">@context.stat</span>
+        </MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="edit" Class="btn2" Size="Size.Small"
+                           Variant="Variant.Outlined" Color="Color.Primary" @onclick="(e => EditClearance(context.clear_id))">
+            </MudIconButton>
+        </MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Print" aria-label="print" Class="btn2" Size="Size.Small"
+                           Variant="Variant.Outlined" Color="Color.Tertiary" @onclick="(e => Print(context.clear_id))">
+            </MudIconButton>
+        </MudTd>
+    </RowTemplate>
+
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[]{50,200,500,1000,2000}" />
+
+    </PagerContent>
+</MudTable>
+
+
+
+
+
+@code {
+
+    private string GetStatusColor(string status)
+    {
+        if (status == "Pending")
+        {
+            return "bg-primary";
+        }
+        else if (status == "Released")
+        {
+            return "bg-success";
+        }
+        return "";
+    }
+
+    //MudBlazor Date Range Picker
+    private MudDateRangePicker? _picker;
+    private MudBlazor.DateRange _dateRange = new MudBlazor.DateRange();
+
+    clearance[]? clearancelist;
+    [Parameter] public clearance server { get; set; } = new clearance();
+    private string? txtsearch { get; set; }
+    DateTime? date = DateTime.Today;
+
+    bool fixed_header = true;
+    bool fixed_footer = false;
+    bool _processing = false;
+
+
+    protected HubConnection hubConnection;
+    protected async override Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Nav.ToAbsoluteUri("/hub"))
+            .Build();
+
+        hubConnection.On("client", async () =>
+        {
+            await Task.Delay(2000);
+            await GetClearance();
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+
+
+
+    public async Task Refresh()
+    {
+        if (hubConnection.State == HubConnectionState.Disconnected)
+        {
+            await hubConnection.StartAsync();
+        }
+        _processing = true;
+        await Task.Delay(2000);
+        _processing = false;
+        await GetClearance();
+    }
+
+    private async Task ExcelExport()
+    {
+        if (_dateRange.Start == null || _dateRange.End == null)
+        {
+
+            Snackbar.Add($"Warning: Select Date First!", Severity.Warning);
+        }
+        else
+        {
+
+            Nav.NavigateTo($"{Nav.BaseUri}api/Clearance/ClearanceReport?start={_dateRange.Start.Value:yyyy-MM-dd}&end={_dateRange.End.Value:yyyy-MM-dd}", true);
+        }
+    }
+    private async Task SearchDate()
+    {
+        await hubConnection.StopAsync();
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Clearance/SearchDateClearance?start={_dateRange.Start.Value:yyyy-MM-dd}&end={_dateRange.End.Value:yyyy-MM-dd}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                clearancelist = JsonConvert.DeserializeObject<clearance[]>(contentrespose);
+            }
+            else
+            {
+                Snackbar.Add($"Warning: {response.StatusCode}", Severity.Warning);
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async Task Search()
+    {
+        if (string.IsNullOrWhiteSpace(txtsearch))
+        {
+            StateHasChanged();
+            return;
+        }
+        await hubConnection.StopAsync();
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Clearance/SearchClearance?search={txtsearch}");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                clearancelist = JsonConvert.DeserializeObject<clearance[]>(contentrespose);
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add($"Warning: {response.StatusCode}", Severity.Warning);
+                StateHasChanged();
+            }
+        }
+    }
+    private async Task AddClearance()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("server", new clearance());
+        var dialog = await Dialog.Show<AddClearance>("ADD CLEARANCE", parameters).Result;
+
+    }
+
+    public residents _residents { get; set; } = new residents();
+
+    private async Task EditClearance(string id)
+    {
+        clearance[]? xclearance;
+        var xxclearance = from s in clearancelist where s.clear_id == id select s;
+        xclearance = xxclearance.ToArray();
+        server.clear_id = xclearance[0].clear_id;
+        _residents.res_id = xclearance[0].res_id;
+        _residents.fullname = xclearance[0].fullname;
+        _residents.civil = xclearance[0].status;
+        _residents.purok = xclearance[0].purok;
+        _residents.age = xclearance[0].age;
+        var parameters = new DialogParameters();
+        var updateClearance = clearancelist.FirstOrDefault(_ => _.clear_id == id);
+        parameters.Add("server", updateClearance);
+        parameters.Add("_residents", _residents);
+        var dialog = Dialog.Show<UpdateClearance>("Update Clearance", parameters);
+        var result = await dialog.Result;
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (firstRender)
+        {
+
+            await GetClearance();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+
+    private async Task GetClearance()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendClient");
+        }
+
+        using (HttpClient client = new HttpClient())
+        {
+            client.BaseAddress = new Uri($"{Nav.BaseUri}");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+            HttpResponseMessage response = await client.GetAsync($"api/Clearance/Clearance");
+            if (response.IsSuccessStatusCode)
+            {
+                string contentrespose = await response.Content.ReadAsStringAsync();
+                clearancelist = JsonConvert.DeserializeObject<clearance[]>(contentrespose);
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+
+
+    [Inject]
+    protected IJSRuntime JSRuntime { get; set; }
+
+    private async Task Print(string id)
+    {
+
+        bool? result = await Dialog.ShowMessageBox(
+         "Release",
+         "Released Document?",
+         yesText: "Release", cancelText: "Cancel");
+
+        if (result ?? false)
+        {
+            server = clearancelist.FirstOrDefault(c => c.clear_id == id);
+
+            int i = 0;
+
+            try
+            {
+                var xclearance = new clearance
+                    {
+                        type = server.type,
+                        clear_id = server.clear_id,
+                        res_id = server.res_id,
+                        photo = server.photo,
+                        fname = server.fname,
+                        mname = server.mname,
+                        lname = server.lname,
+                        ext = server.ext,
+                        age = server.age,
+                        status = server.status,
+                        purok = server.purok,
+                        request = server.request,
+                        date = server.date,
+                        fee = server.fee,
+                        receipt = server.receipt,
+                        stat = server.stat = "Released"
+
+                    };
+
+                using (HttpClient client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri($"{Nav.BaseUri}");
+                    var json = JsonConvert.SerializeObject(xclearance);
+                    HttpContent content = new StringContent(json);
+                    content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await localStorage.GetItemAsStringAsync("token"));
+                    HttpResponseMessage response = await client.PostAsync($"api/Clearance/UpdateClearance", content).ConfigureAwait(false);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string contentresponse = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        i = JsonConvert.DeserializeObject<int>(contentresponse);
+                        if (i > 0)
+                        {
+                            await InvokeAsync(StateHasChanged);
+                            string path = $"printclearance/{id}";
+                            await OpenInNewTab(path);
+
+                        }
+                    }
+                    else
+                    {
+                        StateHasChanged();
+                    }
+                }
+            }
+            catch (Exception)
+            {
+
+            }
+        }
+
+    }
+
+    private async ValueTask OpenInNewTab(string url)
+    {
+        await JSRuntime.InvokeVoidAsync("open", url, "_blank");
+    }
+}
+
+
+<style>
+    .title {
+        font-family: Cambria, Cochin, Georgia, Times, Times New Roman, serif;
+        font-size: 30px;
+    }
+
+    .btn2 {
+        padding: 0em;
+        margin-left: -40px;
+    }
+
+    .img {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+    }
+</style>
